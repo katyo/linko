@@ -1,0 +1,19 @@
+[package]
+name = "linko"
+version = "0.1.0"
+authors = ["K. <kayo@illumium.org>"]
+
+[dependencies]
+decimate = "^0.2"
+
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_json = "^1.0"
+
+futures = "^0.1"
+future_pubsub = "^0.1"
+tokio = "^0.1"
+hyper = "^0.11"
+
+log = "^0.4"
+pretty_env_logger = "^0.2"

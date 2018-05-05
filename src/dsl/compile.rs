@@ -6,7 +6,7 @@ use futures::stream::{empty, once};
 use future_pubsub::unsync::{into_cloneable};
 
 use dsl::def::{Mesh, Node, Link, Value};
-use dsl::imp::{NodeDecl, NodeDecls, Observable, Observables};
+use dsl::imp::{ValueCell, NodeDecl, NodeDecls, Observable, Observables};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InputControl {
@@ -18,20 +18,25 @@ pub type ControlStream = Box<Stream<Item = InputControl, Error = ()>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputChange {
-    pub node: Rc<String>,
-    pub out: Rc<String>,
+    pub link: Rc<Link>,
     pub value: Value,
 }
 
 impl OutputChange {
-    pub fn new<S: Into<String>, V: Into<Value>>(node: S, out: S, value: V) -> Self {
-        Self { node: Rc::new(node.into()), out: Rc::new(out.into()), value: value.into() }
+    pub fn new<V: Into<Value>>(link: Link, value: V) -> Self {
+        Self { link: Rc::new(link), value: value.into() }
+    }
+
+    pub fn wrap<V: Into<Value>>(link: Rc<Link>, value: V) -> Self {
+        Self { link: link.clone(), value: value.into() }
     }
 }
 
 pub type ChangesStream = Box<Stream<Item = OutputChange, Error = ()>>;
 
-pub fn compile(decls: &NodeDecls, mesh: &Mesh, ctrl_stream: ControlStream) -> Result<ChangesStream, String> {
+pub type ValuesMap = HashMap<Rc<Link>, ValueCell>;
+
+pub fn compile(decls: &NodeDecls, mesh: &Mesh, ctrl_stream: ControlStream) -> Result<(ValuesMap, ChangesStream), String> {
     let ctrl_stream = into_cloneable(ctrl_stream);
     
     // validate nodes
@@ -98,20 +103,20 @@ pub fn compile(decls: &NodeDecls, mesh: &Mesh, ctrl_stream: ControlStream) -> Re
         nodes = new_nodes;
     }
 
+    let mut values_map = ValuesMap::new();
+
     let mut change_stream: ChangesStream = Box::new(empty());
     
     for (link, observable) in observables.iter() {
-        if let &Link::Output { ref node, ref out } = link {
-            let node = Rc::new(node.clone());
-            let out = Rc::new(out.clone());
-            let (_, stream) = observable.clone().into();
-            change_stream = Box::new(
-                change_stream.select(stream.map(move |value| OutputChange { node: node.clone(), out: out.clone(), value }))
-            );
-        }
+        let (value, stream) = observable.clone().into();
+        let link = Rc::new(link.clone());
+        values_map.insert(link.clone(), value);
+        change_stream = Box::new(
+            change_stream.select(stream.map(move |value| OutputChange::wrap(link.clone(), value)))
+        );
     }
 
-    Ok(change_stream)
+    Ok((values_map, change_stream))
 }
 
 fn validate_outputs(decl: &NodeDecl, node: &Node) -> Result<(), String> {
@@ -164,7 +169,7 @@ fn validate_inputs(mesh: &Mesh, decl: &NodeDecl, node: &Node) -> Result<(), Stri
 
 #[cfg(test)]
 mod test {
-    use dsl::def::{Mesh};
+    use dsl::def::{Mesh, Link};
     use dsl::imp::{NodeDecls};
     use dsl::{OutputChange, compile};
     use ops::{basic_ops};
@@ -206,15 +211,19 @@ mod test {
         
         assert!(res.is_ok());
 
-        let out = res.unwrap();
+        let (_, out) = res.unwrap();
 
         block_on_all(lazy(|| {
             spawn(out.collect().map(|vals| {
-                assert_eq!(vals.len(), 2);
-                assert!(vals[0] == OutputChange::new("add", "=", 7) &&
-                        vals[1] == OutputChange::new("mul", "=", 6) ||
-                        vals[1] == OutputChange::new("add", "=", 7) &&
-                        vals[0] == OutputChange::new("mul", "=", 6));
+                println!("{:?}", vals);
+                assert_eq!(vals.iter()
+                           .filter(|out| *out.link == Link::output("mul", "="))
+                           .map(|out| out.value)
+                           .last(), Some(6.into()));
+                assert_eq!(vals.iter()
+                           .filter(|out| *out.link == Link::output("add", "="))
+                           .map(|out| out.value)
+                           .last(), Some(7.into()));
             }));
 
             Ok::<_, ()>(())

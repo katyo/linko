@@ -162,6 +162,16 @@ pub enum Link {
     }
 }
 
+impl Link {
+    pub fn output<S: Into<String>>(node: S, out: S) -> Self {
+        Link::Output { node: node.into(), out: out.into() }
+    }
+    
+    pub fn ctrl<S: Into<String>>(name: S) -> Self {
+        Link::Ctrl { name: name.into() }
+    }
+}
+
 pub type Value = d128;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

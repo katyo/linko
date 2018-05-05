@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["K. <kayo@illumium.org>"]
 
 [dependencies]
-decimate = "^0.2"
+decimal = "^2.0"
 
 serde = "^1.0"
 serde_derive = "^1.0"

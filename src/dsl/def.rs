@@ -1,3 +1,5 @@
+use decimal::{d128};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NodeKind {
     pub name: String,
@@ -23,6 +25,14 @@ impl NodeKind {
             ins: Vec::new(),
             outs: Vec::new(),
         }
+    }
+
+    pub fn get_in<S: AsRef<str>>(&self, name: S) -> Option<&InputKind> {
+        self.ins.iter().find(|&input| input.name == name.as_ref())
+    }
+
+    pub fn get_out<S: AsRef<str>>(&self, name: S) -> Option<&OutputKind> {
+        self.outs.iter().find(|&output| output.name == name.as_ref())
     }
 
     pub fn with_info<S: AsRef<str>>(mut self, info: S) -> Self {
@@ -87,8 +97,6 @@ impl OutputKind {
     }
 }
 
-pub type NodeKinds = Vec<NodeKind>;
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Node {
     pub kind: String,
@@ -107,6 +115,16 @@ pub struct Node {
     pub outs: Vec<Output>,
 }
 
+impl Node {
+    pub fn get_in<S: AsRef<str>>(&self, name: S) -> Option<&Input> {
+        self.ins.iter().find(|&input| input.name == name.as_ref())
+    }
+
+    pub fn get_out<S: AsRef<str>>(&self, name: S) -> Option<&Output> {
+        self.outs.iter().find(|&output| output.name == name.as_ref())
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Input {
     pub name: String,
@@ -115,9 +133,9 @@ pub struct Input {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub info: Option<String>,
 
-    #[serde(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub link: Option<Link>,
+    //#[serde(default)]
+    //#[serde(skip_serializing_if = "Option::is_none")]
+    pub link: Link,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -129,15 +147,48 @@ pub struct Output {
     pub info: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Link {
-    /// Linked node name
-    pub node: String,
-    /// Linked out name
-    pub out: String,
+#[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum Link {
+    Output {
+        /// Linked node name
+        node: String,
+        /// Linked output name
+        out: String,
+    },
+    Ctrl {
+        /// Linked control name
+        name: String,
+    }
 }
 
-pub type Nodes = Vec<Node>;
+pub type Value = d128;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Ctrl {
+    pub name: String,
+
+    pub value: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Mesh {
+    /// nodes
+    pub nodes: Vec<Node>,
+
+    /// controls
+    pub ctrls: Vec<Ctrl>,
+}
+
+impl Mesh {
+    pub fn get_node<S: AsRef<str>>(&self, name: S) -> Option<&Node> {
+        self.nodes.iter().find(|n| n.name == name.as_ref())
+    }
+
+    pub fn get_ctrl<S: AsRef<str>>(&self, name: S) -> Option<&Ctrl> {
+        self.ctrls.iter().find(|c| c.name == name.as_ref())
+    }
+}
 
 #[cfg(test)]
 mod test {

@@ -1,4 +1,4 @@
-extern crate decimate;
+extern crate decimal;
 
 #[macro_use]
 extern crate serde_derive;
@@ -15,3 +15,4 @@ extern crate log;
 extern crate pretty_env_logger;
 
 pub mod dsl;
+pub mod ops;

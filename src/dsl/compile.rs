@@ -5,8 +5,7 @@ use futures::{Stream};
 use futures::stream::{empty, once};
 use future_pubsub::unsync::{into_cloneable};
 
-use dsl::def::{Mesh, Node, Link, Value};
-use dsl::imp::{ValueCell, NodeDecl, NodeDecls, Observable, Observables};
+use dsl::{Mesh, Node, Link, Value, ValueCell, NodeDecl, NodeDecls, Observable, Observables};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InputControl {
@@ -104,7 +103,6 @@ pub fn compile(decls: &NodeDecls, mesh: &Mesh, ctrl_stream: ControlStream) -> Re
     }
 
     let mut values_map = ValuesMap::new();
-
     let mut change_stream: ChangesStream = Box::new(empty());
     
     for (link, observable) in observables.iter() {
@@ -169,9 +167,7 @@ fn validate_inputs(mesh: &Mesh, decl: &NodeDecl, node: &Node) -> Result<(), Stri
 
 #[cfg(test)]
 mod test {
-    use dsl::def::{Mesh, Link};
-    use dsl::imp::{NodeDecls};
-    use dsl::{OutputChange, compile};
+    use dsl::{Mesh, Link, NodeDecls, compile};
     use ops::{basic_ops};
     use serde_json::{from_str};
     use futures::{Stream, Future};
@@ -224,6 +220,7 @@ mod test {
                            .filter(|out| *out.link == Link::output("add", "="))
                            .map(|out| out.value)
                            .last(), Some(7.into()));
+                assert!(false);
             }));
 
             Ok::<_, ()>(())

@@ -2,7 +2,7 @@ use std::rc::{Rc};
 use std::cell::{RefCell};
 use std::collections::{HashMap};
 
-use dsl::def::{NodeKind, InputKind, OutputKind, Value};
+use dsl::{NodeKind, InputKind, OutputKind, Value};
 use futures::{Stream};
 use future_pubsub::unsync::{Cloneable, into_cloneable};
 

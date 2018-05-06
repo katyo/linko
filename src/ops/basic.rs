@@ -1,8 +1,7 @@
 use decimal::{d128};
 use futures::{Stream};
 
-use dsl::def::{NodeKind, InputKind, OutputKind};
-use dsl::imp::{Observables, NodeDecl, NodeDecls};
+use dsl::{NodeKind, InputKind, OutputKind, Observables, NodeDecl, NodeDecls};
 
 fn neg_impl(mut ins: Observables) -> Observables {
     let (_, ai) = ins.get("a").into();
